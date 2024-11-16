@@ -1,5 +1,13 @@
 #include "ring.h"
+#include <cstdlib>  // For rand()
 #include <glut.h>
+
+
+float ropeColorR = 1.0f;
+float ropeColorG = 0.0f;
+float ropeColorB = 0.0f;
+
+
 
 void drawRing() {
     // Base Platform
@@ -32,7 +40,7 @@ void drawRing() {
 
         for (int i = 0; i < 4; ++i) {
             glPushMatrix();
-            glColor3f(1.0f, 0.0f, 0.0f);  // Red ropes
+            glColor3f(ropeColorR, ropeColorG, ropeColorB);
             glTranslatef(ropePositions[i][0], ropePositions[i][1], ropePositions[i][2]);
 
             if (i % 2 == 0) {  // Horizontal sides

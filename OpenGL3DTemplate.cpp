@@ -1,9 +1,10 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <glut.h>
 #include "mikeTyson.h"
 #include "ring.h"
 #include "collectible.h"  // Include the collectible class
 #include <math.h>
-#include <stdio.h>
 
 collectible glove;  // Create an instance of the collectible glove
 static int score = 0;  // Initialize the score to 0
@@ -18,38 +19,52 @@ bool gameWon = false;   // Flag to check if the game is won
 
 
 
-void changeScene() {
-	// do a scene changeto a game won screen
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glPushMatrix();
-        glLoadIdentity();
-        glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
-        glLoadIdentity();
-        gluOrtho2D(0, 800, 0, 600);  // Set the 2D orthographic view
-        glMatrixMode(GL_MODELVIEW);
 
-        glColor3f(1.0f, 1.0f, 0.0f);  // Yellow color for the message
-        glRasterPos2i(350, 300);  // Position the text in the center
-        char message[50];
-        if (gameWon) {
-       
-            sprintf(message, "GAME WIN!");
-		}
-		else {
-			sprintf(message, "GAME OVER!");
-		}
-        for (int i = 0; message[i] != '\0'; i++) {
-            glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, message[i]);  // Display each character
-        }
+void displayEndScreen() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glPopMatrix();
-        glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
-		glMatrixMode(GL_MODELVIEW);
+    // Set the background color
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Black background
 
-    
-	}
+    // Display text
+    glPushMatrix();
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(0, 800, 0, 600);  // Set the 2D orthographic view
+    glMatrixMode(GL_MODELVIEW);
+
+    glColor3f(1.0f, 1.0f, 1.0f);  // White text
+    glRasterPos2i(350, 300);  // Center the text
+    const char* message = gameWon ? "GAME WIN" : "GAME OVER";
+    for (const char* c = message; *c != '\0'; c++) {
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, *c);
+    }
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
+    glFlush();
+}
+
+
+void updateRopeColor(int value) {
+    // Generate random color values for the ropes
+    ropeColorR = static_cast<float>(rand() % 256) / 255.0f;
+    ropeColorG = static_cast<float>(rand() % 256) / 255.0f;
+    ropeColorB = static_cast<float>(rand() % 256) / 255.0f;
+
+    // Request a redraw
+    glutPostRedisplay();
+
+    // Set the timer to call this function again
+    glutTimerFunc(500, updateRopeColor, 0);  // Update every 500 milliseconds
+}
+
+
 
 
 void drawBoxingBell() {
@@ -470,55 +485,40 @@ void Display() {
 }
 
 void updateGame(int value) {
-
-    if (!gameOver) {  // Only update the game if it's not over
-        // Decrease the time each frame
-        gameTime -= 0.016f;  // 60 FPS, so decrease by ~1/60
-
-        // Check if time has run out
-        if (gameTime <= 0) {
+    if (!gameOver) {
+        gameTime -= 0.016f; // Decrease game time (assuming 60 FPS)
+		if (score >= 30) {
+			gameWon = true;
+			glutDisplayFunc(displayEndScreen);
+		}
+        if (gameTime <= 0.0f) {
             gameOver = true;
-            changeScene();
-			return;
-            // If the player collected enough gloves, it's a win
-            if (score >= 1) {
-                gameWon = true;
-                changeScene();
-				return;
-            }
-            else {
-                printf("Game Over! You lost the game.\n");
-                // Display the 'GAME LOSE' screen here
-            }
+            glutDisplayFunc(displayEndScreen); // Switch to end screen
         }
+
+        rotateChair();
+        collectGlove();
+        glove.animate();
+        moveDumbbell();
+        updatePulse();
+        updateRopeColor(value);
+
+        glutPostRedisplay();
+        glutTimerFunc(16, updateGame, 0); // Continue game loop
     }
-
-
-    rotateChair();       // Update the chair's rotation
-    drawReferee();
-    collectGlove();      // Check for glove collection
-    glove.animate();     // Animate glove movement
-	moveDumbbell();      // Move the dumbbell back and forth
-	updatePulse();       // Update the pulsing effect
-    //gameWin();           // Check for game win condition
-    glutPostRedisplay(); // Request re-drawing to update the display
-    glutTimerFunc(16, updateGame, 0); // Call this function every 16 ms (roughly 60 FPS)
 }
 
+
 int main(int argc, char** argv) {
-    // Initialize GLUT
     glutInit(&argc, argv);
     glutInitWindowSize(800, 600);
     glutInitWindowPosition(50, 50);
     glutCreateWindow("3D Boxing Game");
 
-    glutDisplayFunc(Display);              // Register display function
-    glutKeyboardFunc(handleKeypress); // Register chair rotation key handler
+    glutDisplayFunc(Display); // Initial display function
+    glutKeyboardFunc(handleKeypress);
 
-    glutTimerFunc(16, updateGame, 0);      // Start the game loop
-
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB | GLUT_DEPTH);
-    glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+    glutTimerFunc(16, updateGame, 0); // Start the game loop
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_LIGHTING);
@@ -527,6 +527,7 @@ int main(int argc, char** argv) {
     glEnable(GL_COLOR_MATERIAL);
     glShadeModel(GL_SMOOTH);
 
-    glutMainLoop();  // Start the main loop
+    glutMainLoop();
     return 0;
 }
+
